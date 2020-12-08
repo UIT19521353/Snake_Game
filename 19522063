@@ -1,0 +1,113 @@
+
+
+#include <stdio.h> // để xài lệnh system("cls")
+#include <conio.h> // để lấy cái hàm _getch trong hàm main
+#include <windows.h> // để sử dụng cái cấu trúc COORD trong hàm gotoXY
+#include <iostream>
+#include <ctime>// thư viện để xài hàm random miếng mồi
+
+using namespace std;
+
+
+#define Dot_Ran 254 //254 là kí hiệu hình vuông trong mã ASCII
+#define MAX 100 // con rắn dài tối đa 100 đơn vị
+#define LEN 1 // hướng di chuyển
+#define XUONG 2
+#define TRAI 3
+#define PHAI 4
+#define TUONG_TREN 2 //khoảng cách để xây dựng tường
+#define TUONG_DUOI 20
+#define TUONG_TRAI 2
+#define TUONG_PHAI 70
+// toa độ vẽ rắn vẽ tường
+
+
+struct toado {
+	int x;
+	int y;
+};
+
+toado snake[MAX]; // tạo mảng chứa tọa độ các đốt rắn
+int soDot = 3; //khởi tạo số đốt rắn
+
+// khởi tạo vị trí rắn khi mới bắt đầu vào game
+void taoSnake() {
+	snake[0].x = 16;
+	snake[1].x = 15;
+	snake[2].x = 14;
+	snake[0].y = snake[1].y = snake[2].y = 5;
+}
+
+// di chuyển con rắn
+toado moveSnake(int huong) {
+	toado duoirancu = snake[soDot - 1]; // lưu lại vi tri đuôi của con rắn để xóa nó khi con rắn di chuyển tại vì không xóa thì con rắn sẽ tự động dài ra theo vòng lặp
+	for (int i = soDot - 1; i > 0; i--) // thân con rắn khi di chuyển
+		snake[i] = snake[i - 1];
+	switch (huong) { // đầu con rắn khi di chuyển lên xuống trái phải
+	case LEN: snake[0].y--; break;
+	case XUONG: snake[0].y++; break;
+	case TRAI: snake[0].x--; break;
+	case PHAI: snake[0].x++; break;
+	}
+	return duoirancu; // trả về tọa độ đuôi rắn cũ để xử lí(xem ham vẽ rắn ở dưới)
+}
+
+
+
+// Di chuyển con trỏ console đến vị trí có tọa độ (x, y)
+void gotoXY (int x, int y);
+
+// Xóa con trỏ nháy
+void noCursorType();
+void gotoXY (int x, int y){
+	COORD coord;
+	coord.X = x;
+	coord.Y = y;
+	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE),coord);
+}
+
+// Xóa con trỏ nháy
+void noCursorType(){
+	CONSOLE_CURSOR_INFO info;
+	info.bVisible = FALSE;
+	info.dwSize = 20;
+	SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info);
+}
+int main()
+{	
+	taoSnake();
+	int huong = PHAI; // mới vào game rắn sẽ di chuyển về phía bên phải
+	char t; // biến này dùng để nhận dữ liệu nhập từ bàn phim để điều khiển rắn
+	int diem = 0;// diem dat dc
+	veWall();// ve tường
+	toado moi = veMoi(); // ve mỗi
+	while (1) {
+		noCursorType(); // xóa con trỏ nhấp nháy khi chạy chương trình
+		if (_kbhit()) { // nếu có tín hiệu nhập từ bàn phím
+			t = _getch(); // thì gán biến t = tín hiệu đó 
+			if (t == 72) huong = LEN; //72 là mã ASCII của dấu mũi tên đi lên
+			else if (t == 80) huong = XUONG;//80 là mã ASCII của dấu mũi tên đi xuống
+			else if (t == 75) huong = TRAI;//75 là mã ASCII của dấu mũi tên đi trái
+			else if (t == 77) huong = PHAI;//77 là mã ASCII của dấu mũi tên đi phải
+		}
+		toado duoirancu = moveSnake(huong);// lấy vị trí đuôi rắn cũ khi rắn di chuyển đi
+		veSnake(duoirancu); // vẽ rắn ở trạng thái kế tiếp + xóa đuôi rắn cũ 
+		if (checkAnMoi(moi) == 1) { // kiem tra xem co ăn mồi chưa
+			moi = veMoi(); // nếu có thì vẽ mồi mới
+			themDot();// và làm rắn dài ra 1 đốt
+			diem += 5; // +5 điểm 1 lượt ăn mồi
+		}
+		gotoXY(55, 23); // chọn vị trí để vẽ ô điểm, thích chọn chỗ nào cũng dc vừa mắt là được
+		cout << "DIEM: " << diem; // xuất ra điểm 
+		//câu lệnh sleep(200) là delay lại 0.2s để vòng lặp tiếp tục 
+		//nếu không có thì vòng lặp chạy rất nhanh
+		//đồng nghĩa với việc con rắn cũng nhanh, số trong () càng thấp thì tốc độ con rắn càng nhanh
+		Sleep(200);
+		if (checkGameover() == 1) {// kiểm tra coi thua chưa
+			system("cls"); // thua thì xóa hết màn hình
+			cout << "GAME OVER";// rồi in ra Game over
+			break;// và kết thúc vòng lặp
+		}
+	}
+	return 0;
+}
